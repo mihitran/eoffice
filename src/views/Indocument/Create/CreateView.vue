@@ -26,13 +26,8 @@
           <!-- Sổ đến -->
           <div class="form-group">
             <label class="label required">Số đến</label>
-            <a-input-number 
-              v-model:value="arrivalNumber" 
-              :min="autoNumber || 1" 
-              placeholder="Nhập số đến"
-              style="width: 100%" 
-              @change="validateArrival" 
-            />
+            <a-input-number v-model:value="arrivalNumber" :min="autoNumber || 1" placeholder="Nhập số đến"
+              style="width: 100%" @change="validateArrival" />
             <div v-if="numberError" class="error-msg">{{ numberError }}</div>
           </div>
 
@@ -46,10 +41,64 @@
             </a-select>
           </div>
         </div>
+        <div class="form-row">
+          <!-- Nhập Số và ký hiệu văn bản -->
+          <div class="form-group">
+            <label class="label required">Số và ký hiệu văn bản</label>
+            <a-input v-model:value="documentSymbol" placeholder="Nhập số và ký hiệu" style="width: 100%" />
+          </div>
+
+          <!-- Chọn Ngày đến (không được lớn hơn hôm nay) -->
+          <div class="form-group">
+            <label class="label required">Ngày đến</label>
+            <a-date-picker v-model:value="arrivalDate" :disabled-date="disableFutureDates" placeholder="Chọn ngày"
+              style="width: 100%" />
+          </div>
+        </div>
+        <div class="form-row">
+          <!-- Hạn trả lời: chỉ chọn từ hôm nay trở đi -->
+          <div class="form-group">
+            <label class="label">Hạn trả lời</label>
+            <a-date-picker v-model:value="replyDeadline" :disabled-date="disablePastDates"
+              placeholder="Chọn hạn trả lời" style="width: 100%" />
+          </div>
+
+          <!-- Ngày ban hành: không giới hạn -->
+          <div class="form-group">
+            <label class="label">Ngày ban hành</label>
+            <a-date-picker v-model:value="issuedDate" placeholder="Chọn ngày ban hành" style="width: 100%" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="label required">Đơn vị ban hành</label>
+
+            <!-- Ô chọn đơn vị ban hành -->
+            <div class="flex items-center border rounded px-3 py-2 cursor-pointer w-full bg-white"
+              @click="showModal = true">
+              <!-- Văn bản hiển thị -->
+              <div class="flex-1 text-gray-400">
+                {{ selectedIssuer || 'Chọn đơn vị ban hành' }}
+              </div>
+
+              <!-- Nút chọn bên phải -->
+              <a-button type="primary" class="rounded px-4 py-1 ml-3" @click.stop="showModal = true">
+                Chọn
+              </a-button>
+            </div>
+
+            <!-- Modal popup -->
+            <SelectIssuerModal v-model:visible="showModal" @selected="(val: string | null) => selectedIssuer = val" />
+          </div>
+
+          <div class="form-group">
+          </div>
+
+        </div>
 
         <!-- Upload + Radio -->
         <div class="form-row">
-          <!-- Upload thực sự -->
           <div class="form-group file-group">
             <label class="label required">File văn bản</label>
             <div class="file-box" @click="triggerFileUpload">
@@ -63,13 +112,12 @@
               <input ref="fileInput" type="file" class="file-hidden-input" accept="*" @change="handleFileChange" />
             </div>
           </div>
-
           <!-- Radio chọn ký số -->
-          <div class="form-group">
+          <div class="form-group flex items-center pt-5">
             <div class="radio-group">
               <label class="radio-label">Ký số file văn bản</label>
-              <div class="radio-options">
-                <label><input type="radio" name="attachmentSign" value="false" /> Không</label>
+              <div class="radio-options font-bold text-[var(--primary-color)]">
+                <label><input type="radio" name="attachmentSign" value="false " /> Không</label>
                 <label><input type="radio" name="attachmentSign" value="true" /> Có</label>
               </div>
             </div>
@@ -83,8 +131,8 @@
 
 <script lang="ts" setup>
 import UploadBox from '@/components/common/UploadBox/UploadBox.vue'
+import SelectIssuerModal from '@/components/common/Indocument/popup/SelectIssuerModal.vue'
 import { ref, watch } from 'vue'
-import { errorMessages } from 'vue/compiler-sfc'
 
 const selectedBook = ref<string | null>(null)
 const selectedType = ref<string | null>(null)
@@ -96,6 +144,15 @@ const selectedUrgency = ref<string | null>(null)
 const bookOptions = ['Sổ 1', 'Sổ 2', 'Sổ 3']
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadedFileName = ref<string | null>(null)
+
+const documentSymbol = ref<string | null>(null)
+const arrivalDate = ref<Date | null>(null)
+
+const replyDeadline = ref<Date | null>(null)
+const issuedDate = ref<Date | null>(null)
+
+const showModal = ref(false)
+const selectedIssuer = ref<string | null>(null)
 
 watch(selectedType, async (newType) => {
   if (newType && selectedBook.value) {
@@ -112,11 +169,26 @@ watch(selectedType, async (newType) => {
   }
 })
 
-function validateArrival(val: number) {
+async function validateArrival(val: number) {
   if (autoNumber.value !== null && val < autoNumber.value) {
     numberError.value = 'Số phải lớn hơn hoặc bằng ' + autoNumber.value
-  } else {
-    numberError.value = null
+    return
+  }
+  await checkArrivalUsed(val)
+}
+
+async function checkArrivalUsed(val: number) {
+  if (!selectedBook.value || !selectedType.value) return
+  try {
+    const res = await fetch(`/api/check-arrival-used?book=${encodeURIComponent(selectedBook.value)}&type=${encodeURIComponent(selectedType.value)}&number=${val}`)
+    const data = await res.json()
+    if (data.used) {
+      numberError.value = 'Số đến đã được sử dụng'
+    } else {
+      numberError.value = null
+    }
+  } catch (error) {
+    console.error('Lỗi khi kiểm tra số đến:', error)
   }
 }
 
@@ -133,6 +205,14 @@ function handleFileChange(event: Event) {
   } else {
     uploadedFileName.value = null
   }
+}
+
+function disableFutureDates(current: Date) {
+  return current && current > new Date()
+}
+
+function disablePastDates(current: Date) {
+  return current && current < new Date()
 }
 </script>
 
@@ -159,7 +239,7 @@ function handleFileChange(event: Event) {
 }
 
 .form-upload {
-  padding: 16px;
+  padding-left: 16px;
   background-color: transparent;
   /* border-radius: 8px; */
   font-family: Arial, sans-serif;

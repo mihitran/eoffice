@@ -12,7 +12,7 @@ const router = createRouter({
       path: '/',
       component: DefaultLayout,
       children: [
-        {path: '', name: 'home', component: CreateView},
+        {path: 'indocument/create', name: 'home', component: CreateView},
         // {path: 'dashboard', name: 'dashboard', component: Dashboard },
       ]
     },

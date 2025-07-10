@@ -27,7 +27,7 @@ function handleClick() {
 <template>
   <div class="title-header-container">
     <div class="title_header" :class="{ active: isActive }" @click="handleClick">
-      <!-- DÙNG router-link đúng cách -->
+      <!-- Router-link -->
       <router-link
         v-if="!hasDropdown"
         :to="to"

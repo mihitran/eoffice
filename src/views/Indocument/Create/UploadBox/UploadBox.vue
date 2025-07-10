@@ -15,12 +15,34 @@
 </template>
 
 <script setup lang="ts">
+
+const props = defineProps<{
+    modelValue: string 
+    fileName?: string  // Thêm prop này
+}>()
+
+const emit = defineEmits<{
+    (e: 'update:modelValue', val: string): void
+    (e: 'uploaded', val: string): void
+    (e: 'fileNameChanged', val: string): void  // Thêm emit này
+}>()
+
 import { useMutation } from '@tanstack/vue-query'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const fileURL = ref<string | null>(null)
 // const loading = ref(false)
+
+watch(
+    () => props.modelValue,
+    (val) => {
+        if (val && val !== fileURL.value) {
+            fileURL.value = val
+        }
+    },
+    { immediate: true }
+)
 
 const uploadFileAPI = async (formData: FormData) => {
     const response = await fetch('/api/upload', {
@@ -38,6 +60,8 @@ const { mutate: uploadFile, isPending } = useMutation({
     mutationFn: uploadFileAPI,
     onSuccess: (data) => {
         fileURL.value = data.fileURL
+        emit('update:modelValue', data.fileURL)
+        emit('uploaded', data.fileURL)
         console.log('File uploaded successfully:', data)
     },
     onError: (error) => {
@@ -69,38 +93,11 @@ function handleUpload(file: File) {
 
     // loading.value = true
 
+    // Thêm emit tên file
+    emit('fileNameChanged', file.name)
+    
     uploadFile(formData)
 }
-
-// async function uploadFile(file: File) {
-//     if (file.type === 'application/pdf') {
-//         fileURL.value = URL.createObjectURL(file)
-//     }
-//     const formData = new FormData()
-//     formData.append('file', file)
-
-//     loading.value = true
-
-//     try {
-//         const response = await fetch('/api/upload', {
-//             method: 'POST',
-//             body: formData
-//         })
-//         const data = await response.json()
-//         console.log(data)
-//         if (data.fileURL) {
-//             fileURL.value = data.fileURL
-//         } else {
-//             throw new Error('Không có fileURL trong phản hồi từ server.')
-//         }
-//     } catch (error) {
-//         console.error('Upload failed:', error)
-//         alert('Tải file thất bại. Vui lòng thử lại.')
-//     } finally {
-//         loading.value = false
-//     }
-// }
-
 
 </script>
 

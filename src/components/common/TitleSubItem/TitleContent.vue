@@ -15,7 +15,7 @@
         />
       </svg>
     </div>
-    <div class="title_content" style="font-size: 14px">
+    <div class="title_content flex items-center" style="font-size: 14px">
       {{ text }}
     </div>
   </div>

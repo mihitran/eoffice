@@ -17,14 +17,14 @@
 <script setup lang="ts">
 
 const props = defineProps<{
-    modelValue: string 
-    fileName?: string  // Thêm prop này
+    modelValue: string  // Url cuar file đã upload
+    fileName?: string  // Tên file hiện tại
 }>()
 
 const emit = defineEmits<{
-    (e: 'update:modelValue', val: string): void
-    (e: 'uploaded', val: string): void
-    (e: 'fileNameChanged', val: string): void  // Thêm emit này
+    (e: 'update:modelValue', val: string): void // Cập nhật URL file
+    (e: 'uploaded', val: string): void // Thông báo upload thành công
+    (e: 'fileNameChanged', val: string): void  // Cập nhật tên file
 }>()
 
 import { useMutation } from '@tanstack/vue-query'
@@ -84,9 +84,10 @@ function handleDrop(event: DragEvent) {
     if (file) handleUpload(file)
 }
 
+// Khi user upload file trong UploadBox
 function handleUpload(file: File) {
     if (file.type === 'application/pdf') {
-        fileURL.value = URL.createObjectURL(file)
+        fileURL.value = URL.createObjectURL(file) // Tạo preview
     }
     const formData = new FormData()
     formData.append('file', file)
@@ -94,7 +95,7 @@ function handleUpload(file: File) {
     // loading.value = true
 
     // Thêm emit tên file
-    emit('fileNameChanged', file.name)
+    emit('fileNameChanged', file.name) // Gửi tên file về form
     
     uploadFile(formData)
 }

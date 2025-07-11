@@ -1,14 +1,16 @@
 <template>
   <a-row :gutter="16" class="row-wrap">
     <!-- Cột trái -->
-    <UploadBox v-model="mainFileUrl" :fileName="mainDocumentFileName ?? undefined" class="upload-box"
+    <UploadBox 
+      v-model="mainFileUrl" 
+      :fileName="mainDocumentFileName ?? undefined" 
+      class="upload-box"
       @uploaded="(val: string) => console.log('File uploaded:', val)"
       @fileNameChanged="(val: string) => mainDocumentFileName = val" />
 
     <!-- Cột phải -->
     <a-col :span="12" class="upload-document">
-      <div class="form-upload">
-
+      <Form v-slot="{ handleSubmit }" @submit="handleSubmit(onSubmit)" class="form-upload">
         <!-- Sổ văn bản và Loại văn bản -->
         <div class="form-row">
           <!-- Sổ văn bản -->
@@ -53,7 +55,10 @@
           <!-- Nhập Số và ký hiệu văn bản -->
           <div class="form-group">
             <label class="label required">Số và ký hiệu văn bản</label>
-            <a-input v-model:value="documentSymbol" placeholder="Nhập số và ký hiệu" style="width: 100%" />
+            <Field name="documentSymbol" v-slot="{ field }">
+              <a-input v-bind="field" placeholder="Nhập số và ký hiệu" style="width: 100%" />
+            </Field>
+            <ErrorMessage name="documentSymbol" class="error-msg" />
           </div>
           <!-- Chọn Ngày đến (không được lớn hơn hôm nay) -->
           <div class="form-group">
@@ -175,13 +180,13 @@
           <ul v-else class="mt-2 text-sm text-gray-400">
             <div></div>
           </ul>
-          <a-button type="primary"
+          <a-button type="primary" 
             class="flex relative justify-center items-center transition-all duration-500 outline-none border-none rounded-[25px] text-[14px] font-bold px-6 py-2 text-white font-semibold"
             style="background-color: var(--primary-color)">
             Xác nhận
           </a-button>
         </div>
-      </div>
+      </Form>
     </a-col>
   </a-row>
 </template>
@@ -191,6 +196,8 @@ import './create.css'
 import UploadBox from './UploadBox/UploadBox.vue'
 import SelectIssuerModal from './PopUp/SelectIssuerModal.vue'
 import { computed, ref, watch } from 'vue'
+import { useForm, Field, Form, ErrorMessage } from 'vee-validate'
+import * as yup from 'yup'
 
 const selectedBook = ref<string | null>(null)
 const selectedType = ref<string | null>(null)
@@ -202,7 +209,7 @@ const selectedUrgency = ref<string | null>(null)
 const bookOptions = ['Sổ 1', 'Sổ 2', 'Sổ 3']
 // const uploadedFileName = ref<string | null>(null) 
 
-const documentSymbol = ref<string | null>(null)
+// const documentSymbol = ref<string | null>(null) 
 const arrivalDate = ref<Date | null>(null)
 
 const replyDeadline = ref<Date | null>(null)
@@ -222,7 +229,7 @@ const mainFileUrl = ref<string>('')
 // Thêm biến cho file phụ lục
 
 const attachmentFiles = ref<File[]>([]) // dùng mảng thay vì 1 file
-const attachmentFileName = ref<string | null>(null)
+// const attachmentFileName = ref<string | null>(null) 
 // const attachmentFileUrl = ref<string>('') 
 
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -233,10 +240,27 @@ const attachmentPlaceholder = computed(() => {
   return `Đã chọn ${attachmentFiles.value.length} file`
 })
 
+// Khai báo schema
+const schema = yup.object({
+  documentSymbol: yup.string().required('Bạn cần nhập số và ký hiệu văn bản'),
+})
+
+// Khai báo kiểu từ schema
+type FormValues = yup.InferType<typeof schema>
+
+// Tạo form instance với schema
+const { handleSubmit } = useForm<FormValues>({
+  validationSchema: schema,
+})
+
+const onSubmit = (values: { documentSymbol: string }) => {
+  console.log('Dữ liệu hợp lệ:', values)
+}
+
 watch(mainFileUrl, (newUrl) => {
   if (newUrl && !mainDocumentFileName.value) {
     const fileName = newUrl.split('/').pop() || 'File văn bản'
-    mainDocumentFileName.value = fileName
+    mainDocumentFileName.value = fileName // Cập nhật tên file
   }
 })
 

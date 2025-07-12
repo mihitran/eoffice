@@ -83,7 +83,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import UnitTree from '@/views/Indocument/Create/PopUp/UnitTree.vue'
+import UnitTree from './UnitTree.vue'
 
 const props = defineProps<{ 
   visible: boolean 
